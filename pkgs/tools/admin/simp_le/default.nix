@@ -1,4 +1,4 @@
-{ stdenv, fetchFromGitHub, fetchpatch, pythonPackages }:
+{ stdenv, fetchFromGitHub, fetchpatch, pythonPackages, bash }:
 
 pythonPackages.buildPythonApplication rec {
   pname = "simp_le-client";
@@ -9,6 +9,11 @@ pythonPackages.buildPythonApplication rec {
     inherit pname version;
     sha256 = "0x4fky9jizs3xi55cdy217cvm3ikpghiabysan71b07ackkdfj6k";
   };
+
+  postPatch = ''
+    substituteInPlace simp_le.py \
+      --replace "/bin/sh" "${bash}/bin/sh"
+  '';
 
   checkPhase = ''
     $out/bin/simp_le --test
