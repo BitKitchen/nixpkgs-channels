@@ -347,5 +347,8 @@ in
 
   };
 
+  # try to work around gce disk issue - probably won't help
+  boot.initrd.preDeviceCommands = "sleep 5s";
+  boot.initrd.postDeviceCommands = "sleep 5s";
 }
 
