@@ -838,6 +838,8 @@ with pkgs;
     boost = boost160;
   };
 
+  blobfuse = callPackage ../tools/filesystems/blobfuse { };
+
   blockdiag = pythonPackages.blockdiag;
 
   blsd = callPackage ../tools/misc/blsd {
@@ -1593,7 +1595,8 @@ with pkgs;
 
   ciopfs = callPackage ../tools/filesystems/ciopfs { };
 
-  citrix_receiver        = hiPrio citrix_receiver_13_9_0;
+  citrix_receiver        = hiPrio citrix_receiver_13_9_1;
+  citrix_receiver_13_9_1 = callPackage ../applications/networking/remote/citrix-receiver { version = "13.9.1"; };
   citrix_receiver_13_9_0 = callPackage ../applications/networking/remote/citrix-receiver { version = "13.9.0"; };
   citrix_receiver_13_8_0 = callPackage ../applications/networking/remote/citrix-receiver { version = "13.8.0"; };
   citrix_receiver_13_7_0 = callPackage ../applications/networking/remote/citrix-receiver { version = "13.7.0"; };
@@ -5522,28 +5525,14 @@ with pkgs;
 
   x11_ssh_askpass = callPackage ../tools/networking/x11-ssh-askpass { };
 
-  xbursttools = assert stdenv ? glibc; callPackage ../tools/misc/xburst-tools rec {
+  xbursttools = callPackage ../tools/misc/xburst-tools {
     # It needs a cross compiler for mipsel to build the firmware it will
     # load into the Ben Nanonote
-    crossPrefix = "mipsel-unknown-linux-gnu";
     gccCross =
       let
         pkgsCross = nixpkgsFun {
           # Ben Nanonote system
-          crossSystem = {
-            config = crossPrefix;
-            arch = "mips";
-            float = "soft";
-            libc = "uclibc";
-            platform = {
-              name = "ben_nanonote";
-              kernelMajor = "2.6";
-              kernelArch = "mips";
-            };
-            gcc = {
-              arch = "mips32";
-            };
-          };
+          crossSystem = lib.systems.examples.ben-nanonote;
         };
       in
         pkgsCross.buildPackages.gccCrossStageStatic;
@@ -6436,6 +6425,8 @@ with pkgs;
 
   oraclejdk9 = pkgs.oraclejdk9distro "JDK" false;
 
+  oraclejdk10 = pkgs.oraclejdk10distro "JDK" false;
+
   oraclejre = lowPrio (pkgs.jdkdistro false false);
 
   oraclejre8 = lowPrio (pkgs.oraclejdk8distro false false);
@@ -6444,7 +6435,11 @@ with pkgs;
 
   oraclejre9 = lowPrio (pkgs.oraclejdk9distro "JRE" false);
 
+  oraclejre10 = lowPrio (pkgs.oraclejdk10distro "JRE" false);
+
   oracleserverjre9 = lowPrio (pkgs.oraclejdk9distro "ServerJRE" false);
+
+  oracleserverjre10 = lowPrio (pkgs.oraclejdk10distro "ServerJRE" false);
 
   jrePlugin = jre8Plugin;
 
@@ -6463,6 +6458,10 @@ with pkgs;
   oraclejdk9distro = packageType: pluginSupport:
     (if pluginSupport then appendToName "with-plugin" else x: x)
       (callPackage ../development/compilers/oraclejdk/jdk9-linux.nix { inherit packageType pluginSupport; });
+
+  oraclejdk10distro = packageType: pluginSupport:
+    (if pluginSupport then appendToName "with-plugin" else x: x)
+      (callPackage ../development/compilers/oraclejdk/jdk10-linux.nix { inherit packageType pluginSupport; });
 
   jikes = callPackage ../development/compilers/jikes { };
 
@@ -7259,7 +7258,10 @@ with pkgs;
   bundlerEnv = callPackage ../development/ruby-modules/bundler-env { };
   bundlerApp = callPackage ../development/ruby-modules/bundler-app { };
 
-  inherit (callPackage ../development/interpreters/ruby { inherit (darwin.apple_sdk.frameworks) Foundation; })
+  inherit (callPackage ../development/interpreters/ruby {
+    inherit (darwin) libiconv libobjc libunwind;
+    inherit (darwin.apple_sdk.frameworks) Foundation;
+  })
     ruby_2_3
     ruby_2_4
     ruby_2_5;
@@ -8979,7 +8981,7 @@ with pkgs;
     # hack fixes the hack, *sigh*.
     /**/ if name == "glibc" then targetPackages.glibcCross or glibcCross
     else if name == "bionic" then targetPackages.bionic
-    else if name == "uclibc" then uclibcCross
+    else if name == "uclibc" then targetPackages.uclibcCross
     else if name == "musl" then targetPackages.muslCross or muslCross
     else if name == "msvcrt" then targetPackages.windows.mingw_w64 or windows.mingw_w64
     else if name == "libSystem" then darwin.xcode
@@ -13967,10 +13969,9 @@ with pkgs;
 
   uclibc = callPackage ../os-specific/linux/uclibc { };
 
-  uclibcCross = lowPrio (callPackage ../os-specific/linux/uclibc {
-    gccCross = gccCrossStageStatic;
-    cross = assert targetPlatform != buildPlatform; targetPlatform;
-  });
+  uclibcCross = callPackage ../os-specific/linux/uclibc {
+    stdenv = crossLibcStdenv;
+  };
 
   udev = systemd;
   libudev = udev;
@@ -15137,10 +15138,10 @@ with pkgs;
   # go 1.9 pin until https://github.com/moby/moby/pull/35739
   inherit (callPackage ../applications/virtualization/docker { go = go_1_9; })
     docker_18_03
-    docker_18_04;
+    docker_18_05;
 
   docker = docker_18_03;
-  docker-edge = docker_18_04;
+  docker-edge = docker_18_05;
 
   docker-proxy = callPackage ../applications/virtualization/docker/proxy.nix { };
 
@@ -18194,7 +18195,7 @@ with pkgs;
 
   vscode = callPackage ../applications/editors/vscode { };
 
-  vscode-with-extensions = callPackage ../applications/editors/vscode-with-extensions {};
+  vscode-with-extensions = callPackage ../applications/editors/vscode/with-extensions.nix {};
 
   vscode-utils = callPackage ../misc/vscode-extensions/vscode-utils.nix {};
 
